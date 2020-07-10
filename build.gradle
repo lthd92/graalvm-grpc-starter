@@ -1,0 +1,103 @@
+buildscript {
+	repositories {
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+	}
+
+	dependencies {
+		classpath("com.google.protobuf:protobuf-gradle-plugin:0.8.11")
+	}
+}
+
+plugins {
+	id 'org.springframework.boot' version '2.3.1.RELEASE'
+	id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+	id 'java'
+	id 'com.github.ayltai.spring-graalvm-native-plugin' version '1.0.4'
+	id "com.google.protobuf" version "0.8.12"
+}
+
+group = 'com.ltdh92'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+	maven {
+		url "https://repo.spring.io/milestone"
+	}
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter'
+	// For Health autoconfiguration
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// For both client and server autoconfigurations to be included
+	implementation "net.devh:grpc-spring-boot-starter:2.9.0.RELEASE"
+	implementation "io.grpc:grpc-netty-shaded:1.30.2"
+	implementation "io.grpc:grpc-protobuf:1.30.2"
+	implementation "io.grpc:grpc-stub:1.30.2"
+	implementation "io.grpc:grpc-auth:1.30.2"
+
+	// For metrics autoconfiguration
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
+	testImplementation('org.springframework.boot:spring-boot-starter-test') {
+		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+	}
+
+	annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+}
+
+test {
+	useJUnitPlatform()
+}
+
+nativeImage {
+	mainClassName = 'com.lthd92.GraalGrpcSpringBootStarterApplication'
+
+	traceClassInitialization   = true
+	reportExceptionStackTraces = true
+	removeUnusedAutoConfig     = true
+	removeYamlSupport          = false
+	maxHeapSize                = '6G'
+	removeSaturatedTypeFlows   = true
+	removeJmxSupport           = true
+	verbose					   = true
+	verify                     = true
+	springNativeMode           = 'feature'
+}
+
+sourceSets {
+	main {
+		java {
+			srcDirs "build/generated-src/main/grpc"
+			srcDirs "build/generated-src/main/java"
+		}
+		proto {
+			srcDir "proto"
+		}
+	}
+}
+
+protobuf {
+	protoc {
+		artifact = 'com.google.protobuf:protoc:3.11.2'
+	}
+	plugins {
+		grpc {
+			artifact = "io.grpc:protoc-gen-grpc-java:1.30.2"
+		}
+	}
+	generateProtoTasks {
+		all()*.plugins {
+			grpc {
+				option 'enable_deprecated=false'
+			}
+		}
+	}
+	generatedFilesBaseDir = "${buildDir}/generated-src"
+}

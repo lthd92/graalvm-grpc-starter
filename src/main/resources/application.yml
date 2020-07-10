@@ -1,0 +1,5 @@
+grpc.server.port: 6080
+management:
+  endpoint:
+    metrics:
+      enabled: true
